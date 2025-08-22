@@ -9,6 +9,16 @@
 CSoundScape g_SoundScapes[MAX_SOUNDSCAPES] { 0 };
 SoundDef g_SoundDefinitions[MAX_SOUNDSCAPES * MAX_SOUNDSCAPES_SOUNDS] { 0 };
 
+bool CSoundScape::StaticInit()
+{
+    for(int i = 0; i < MAX_SOUNDSCAPES; ++i)
+    {
+        g_SoundScapes[i].m_nID = i;
+    }
+    if(!CSoundSystem::Start()) return false;
+    return true;
+}
+
 bool CSoundScape::LoadDat(const char* filepath)
 {
     FILE* jsonFile = fopen(filepath, "rb");
@@ -51,4 +61,11 @@ bool CSoundScape::LoadDat(const char* filepath)
 
     fclose(jsonFile);
     return true;
+}
+
+void CSoundScape::UpdateCamera(Pos3D pos, Pos3D front, Pos3D top)
+{
+    m_vecCameraPos = pos;
+    m_vecCameraFront = front;
+    m_vecCameraTop = top;
 }
