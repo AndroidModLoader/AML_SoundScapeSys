@@ -17,6 +17,9 @@ bool CSoundScape::StaticInit()
     for(int i = 0; i < MAX_SOUNDSCAPES; ++i)
     {
         g_SoundScapes[i].m_nID = i;
+		g_SoundScapes[i].m_nTargetWorldID = -1;
+		g_SoundScapes[i].m_nTimeStart = 0xFFFFFFFF;
+		g_SoundScapes[i].m_nTimeEnd = 0xFFFFFFFF;
     }
     if(!CSoundSystem::Start()) return false;
     return true;
@@ -73,8 +76,28 @@ void CSoundScape::UpdateCamera(Pos3D pos, Pos3D front, Pos3D top)
     m_vecCameraTop = top;
 }
 
+void CSoundScape::UpdateWorldId(int worldId)
+{
+	if(worldId != m_nWorldID)
+	{
+		// TODO: Callback?
+		m_nWorldID = worldId;
+	}
+}
+
+void CSoundScape::UpdateWorldTime(unsigned int timeValue)
+{
+	m_nWorldTime = timeValue;
+}
+
+bool CSoundScape::HasSpecialFlag(unsigned char flagNum)
+{
+	return ((m_nSpecialAudioFlags >> flagNum) & 0x1) != 0;
+}
+
 CSoundScape* CSoundScape::New()
 {
+	if(m_nSoundScapes >= MAX_SOUNDSCAPES) return NULL;
 	return &g_SoundScapes[m_nSoundScapes++];
 }
 
@@ -138,4 +161,63 @@ bool CSoundScape::Deactivate()
 		// TODO: Deactivate sound sources?
 	}
 	return true;
+}
+
+bool CSoundScape::IsInRange()
+{
+	if(m_nWorldID != -1 && m_nTargetWorldID != -1 && m_nTargetWorldID != m_nWorldID)
+	{
+		return false;
+	}
+	if(!IsActiveAtTime())
+	{
+		return false;
+	}
+	
+	switch(m_nType)
+	{
+		case SST_BOX:
+		{
+			bool vmn = (m_box.m_vecStart.x < m_vecCameraPos.x &&
+			            m_box.m_vecStart.y < m_vecCameraPos.y &&
+						m_box.m_vecStart.z < m_vecCameraPos.z);
+			bool vmx = (m_box.m_vecEnd.x > m_vecCameraPos.x &&
+			            m_box.m_vecEnd.y > m_vecCameraPos.y &&
+						m_box.m_vecEnd.z > m_vecCameraPos.z);
+			return (vmn && vmx);
+		}
+		case SST_SPHERE:
+		{
+			return (m_sphere.m_vecCenter.SqDistTo(m_vecCameraPos) < m_sphere.m_fSqRadius);
+		}
+		case SST_DOME:
+		{
+			if(m_sphere.m_vecCenter.z > m_vecCameraPos.z) return false;
+			return (m_sphere.m_vecCenter.SqDistTo(m_vecCameraPos) < m_sphere.m_fSqRadius);
+		}
+		case SST_INVDOME:
+		{
+			if(m_sphere.m_vecCenter.z < m_vecCameraPos.z) return false;
+			return (m_sphere.m_vecCenter.SqDistTo(m_vecCameraPos) < m_sphere.m_fSqRadius);
+		}
+	}
+	return false;
+}
+
+bool CSoundScape::IsTimed()
+{
+	return (m_nTimeStart != 0xFFFFFFFF && m_nTimeEnd != 0xFFFFFFFF);
+}
+
+bool CSoundScape::IsActiveAtTime()
+{
+	if(!IsTimed()) return true;
+	if(m_nTimeStart < m_nTimeEnd)
+	{
+		return (m_nTimeStart <= m_nWorldTime && m_nWorldTime < m_nTimeEnd);
+	}
+	else
+	{
+		return (m_nTimeStart <= m_nWorldTime || m_nWorldTime < m_nTimeEnd);
+	}
 }
