@@ -24,6 +24,16 @@ enum eSoundScapeType : unsigned char
 
     SST_MAXTYPES
 };
+enum eSoundDistanceType : unsigned char
+{
+    SDT_EVERYWHERE = 0,
+    SDT_SPHERICAL,
+    SDT_HEIGHT, // AXISZ
+    SDT_AXISX,
+    SDT_AXISY,
+
+    SDT_MAXTYPES
+};
 struct CSoundSystem
 {
     static bool Start();
@@ -47,10 +57,10 @@ struct SoundDef
 	float m_fDistance;
     unsigned int m_nFadeOutTime; // Appearing time (ms)
     unsigned int m_nFadeInTime; // Disappearing time (ms)
+    eSoundDistanceType m_nDistanceLogic;
     bool m_bLoaded;
     bool m_bLooped;
     bool m_bActive;
-    bool m_bPositional;
 };
 
 struct CSoundScape
