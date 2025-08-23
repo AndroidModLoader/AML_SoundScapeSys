@@ -86,6 +86,7 @@ SoundDef* CSoundScape::AttachSoundDef()
 	
 	SoundDef* attachment = &g_SoundDefinitions[m_nSoundsUsed++];
 	m_SoundDef[m_nSounds++] = attachment;
+	attachment->m_pOwner = this;
 	return attachment;
 }
 
