@@ -9,6 +9,7 @@
 CSoundScape g_SoundScapes[MAX_SOUNDSCAPES] { 0 };
 CSoundScape* g_ActiveSoundScapes[MAX_ACTIVE_SOUNDSCAPES] { NULL };
 SoundDef g_SoundDefinitions[MAX_SOUNDSCAPES * MAX_SOUNDSCAPES_SOUNDS] { 0 };
+SoundDef g_SoundPrecaches[MAX_PRECACHED_SOUNDS] { 0 };
 
 // Static
 
@@ -101,6 +102,59 @@ CSoundScape* CSoundScape::New()
 	return &g_SoundScapes[m_nSoundScapes++];
 }
 
+static int g_nUpdateCounter = 0, g_nUpdateOffset = 0;
+void CSoundScape::UpdateAll()
+{
+	CSoundSystem::SetListenerData();
+	
+	CSoundScape* sscape;
+	if(!m_bSplitUpdates || m_nSoundScapes < 40)
+	{
+		for(int i = 0; i < m_nActiveSoundScapes; ++i)
+		{
+			g_ActiveSoundScapes[i]->UpdateActive();
+		}
+		
+		for(int i = 0; i < m_nSoundScapes; ++i)
+		{
+			sscape = &g_SoundScapes[i];
+			if(!sscape->m_bActive)
+			{
+				sscape->UpdateInactive();
+			}
+		}
+		g_nUpdateCounter = 0;
+	}
+	else
+	{
+		if(g_nUpdateCounter == 0)
+		{
+			for(int i = 0; i < m_nActiveSoundScapes; ++i)
+			{
+				g_ActiveSoundScapes[i]->UpdateActive();
+			}
+			
+			g_nUpdateOffset = ((m_nSoundScapes - 1) / 8) + 1;
+		}
+		int start = g_nUpdateCounter * g_nUpdateOffset;
+		int end = (g_nUpdateCounter + 1) * g_nUpdateOffset;
+		for(int i = start; i < end && i < m_nSoundScapes; ++i)
+		{
+			sscape = &g_SoundScapes[i];
+			if(!sscape->m_bActive)
+			{
+				sscape->UpdateInactive();
+			}
+		}
+		g_nUpdateCounter = (g_nUpdateCounter + 1) % 8;
+	}
+}
+
+void CSoundScape::PrecacheAudio(const char* filepath)
+{
+	
+}
+
 // Member
 
 SoundDef* CSoundScape::AttachSoundDef()
@@ -110,6 +164,7 @@ SoundDef* CSoundScape::AttachSoundDef()
 	SoundDef* attachment = &g_SoundDefinitions[m_nSoundsUsed++];
 	m_SoundDef[m_nSounds++] = attachment;
 	attachment->m_pOwner = this;
+	attachment->m_pSoundPtr = CSoundSystem::GetNewSound();
 	return attachment;
 }
 
@@ -219,5 +274,21 @@ bool CSoundScape::IsActiveAtTime()
 	else
 	{
 		return (m_nTimeStart <= m_nWorldTime || m_nWorldTime < m_nTimeEnd);
+	}
+}
+
+void CSoundScape::UpdateInactive()
+{
+	if(IsActiveAtTime() && IsInRange())
+	{
+		Activate();
+	}
+}
+
+void CSoundScape::UpdateActive()
+{
+	if(!IsActiveAtTime() || !IsInRange())
+	{
+		Deactivate();
 	}
 }

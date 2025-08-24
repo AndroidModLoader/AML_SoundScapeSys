@@ -8,7 +8,8 @@
 #define MAX_ACTIVE_SOUNDSCAPES          10
 #define MAX_SOUNDSCAPES_SOUNDS          6
 #define MAX_SOUNDSCAPES_ACTIVE_SOUNDS   (2 * MAX_ACTIVE_SOUNDSCAPES * MAX_SOUNDSCAPES_SOUNDS)
-#define MAX_SOUNDSCAPES_SOUND_PATH      160
+#define MAX_SOUNDSCAPES_SOUND_PATH      40
+#define MAX_PRECACHED_SOUNDS            128
 
 struct CSoundScape;
 
@@ -62,6 +63,12 @@ enum eSoundDistanceType : char
 struct CSoundSystem
 {
     static bool Start();
+	static void Precache(void* ptr, const char* path);
+	static void* IsPrecached(const char* path);
+	static void SetListenerData();
+	static void* GetNewSound();
+	static bool LoadSound(void* ptr, const char* path, bool modifiedpitch = false, bool stream = false);
+	static void SetPos(void* ptr, Pos3D pos);
 };
 struct SoundScapeBox
 {
@@ -83,13 +90,19 @@ struct SoundDef
     Pos3D m_vecCenter;
     float m_fVolume; // [0.0 - 1.0]
 	float m_fDistance;
-    unsigned int m_nFadeOutTime; // Appearing time (ms)
-    unsigned int m_nFadeInTime; // Disappearing time (ms)
+	float m_fRollOff;
+    unsigned int m_nFadeInTime; // Appearing time (ms)
+    unsigned int m_nFadeOutTime; // Disappearing time (ms)
     eSoundDistanceType m_nDistanceLogic; // Might be negative to inverse logic
-    bool m_bLoaded;
-    bool m_bLooped;
-    bool m_bActive;
+	struct
+	{
+		char m_bLoaded : 1;
+    	char m_bLooped : 1;
+    	char m_bActive : 1;
+		char m_bStream : 1;
+	};
 	unsigned char m_nRequiredSpecialFlag;
+	unsigned char m_nAttenuationModel;
 };
 
 struct CSoundScape
@@ -102,7 +115,11 @@ struct CSoundScape
 	static void UpdateWorldTime(unsigned int timeValue);
 	static bool HasSpecialFlag(unsigned char flagNum);
 	static CSoundScape* New();
+	static void UpdateAll();
+	static void PrecacheAudio(const char* filepath);
 
+	static inline char m_szPathPrefix[256] = "";
+	static inline bool m_bSplitUpdates = true; // Unloads CPU.
     static inline int m_nSoundsUsed = 0;
     static inline int m_nSoundScapes = 0;
 	static inline int m_nActiveSoundScapes = 0;
@@ -124,6 +141,8 @@ struct CSoundScape
 	bool IsInRange();
 	bool IsTimed();
 	bool IsActiveAtTime();
+	void UpdateInactive();
+	void UpdateActive();
 	
     int m_nID;
 	int m_nTargetWorldID;
