@@ -3,13 +3,14 @@
 bool SoundDef::IsInRange()
 {
 	bool inverseLogic = false;
-	if(m_nDistanceLogic < 0)
+	eSoundDistanceType logic = m_nDistanceLogic;
+	if(logic < 0)
 	{
-		m_nDistanceLogic = (eSoundDistanceType)-m_nDistanceLogic;
+		logic = (eSoundDistanceType)-m_nDistanceLogic;
 		inverseLogic = true;
 	}
 	
-	switch(m_nDistanceLogic)
+	switch(logic)
 	{
 		case SDT_EVERYWHERE: return true;
 		case SDT_SPHERICAL:
@@ -54,4 +55,28 @@ bool SoundDef::IsInRange()
 		}
 	}
 	return false;
+}
+
+void SoundDef::UpdatePos()
+{
+	if(!m_pSoundPtr) return;
+	
+	eSoundDistanceType logic = m_nDistanceLogic;
+	if(logic < 0)
+	{
+		logic = (eSoundDistanceType)-m_nDistanceLogic;
+	}
+	switch(logic)
+	{
+		case SDT_ALONGXY:
+		{
+			if(m_fSensitiveAxisCoord != CSoundScape::m_vecCameraPos.z)
+			{
+				m_fSensitiveAxisCoord = CSoundScape::m_vecCameraPos.z;
+				m_vecCenter.z = m_fSensitiveAxisCoord;
+				CSoundSystem::SetPos(m_pSoundPtr, m_vecCenter);
+			}
+			break;
+		}
+	}
 }

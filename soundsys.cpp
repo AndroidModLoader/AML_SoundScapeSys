@@ -32,6 +32,14 @@ void* CSoundSystem::GetNewSound()
 	return (void*)&g_SoundsArray[g_nSoundsArrayUsed++];
 }
 
+bool CSoundSystem::InstantiateSound(void* precached, void* target, bool modifiedpitch)
+{
+	int flags = 0;
+	if(!modifiedpitch) flags |= MA_SOUND_FLAG_NO_PITCH;
+	ma_result result = ma_sound_init_copy(&soundSys, (ma_sound*)precached, flags, NULL, (ma_sound*)target);
+	return (result == MA_SUCCESS);
+}
+
 bool CSoundSystem::LoadSound(void* ptr, const char* path, bool modifiedpitch, bool stream)
 {
 	int flags = 0;
@@ -44,5 +52,5 @@ bool CSoundSystem::LoadSound(void* ptr, const char* path, bool modifiedpitch, bo
 
 void CSoundSystem::SetPos(void* ptr, Pos3D pos)
 {
-	
+	ma_sound_set_position((ma_sound*)ptr, pos.x, pos.y, pos.z);
 }

@@ -53,10 +53,15 @@ bool CSoundScape::LoadDat(const char* filepath)
         return false;
     }
 
+	// TODO: Load important keys first!
     for (rapidjson::Value::ConstMemberIterator itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr)
     {
         const rapidjson::Value& innerObj = itr->value;
         if(innerObj.IsObject()) // SoundScape definition (most likely.)
+        {
+
+        }
+		else if(innerObj.IsArray()) // Some special data (precache table for example)
         {
 
         }
@@ -152,19 +157,49 @@ void CSoundScape::UpdateAll()
 
 void CSoundScape::PrecacheAudio(const char* filepath)
 {
+	if(m_nSoundsPrecached >= MAX_PRECACHED_SOUNDS-1) return;
+	if(GetPrecached(filepath) != NULL) return;
 	
+	SoundDef* attachment = &g_SoundPrecaches[m_nSoundsPrecached++];
+	attachment->m_pOwner = NULL;
+	attachment->m_pSoundPtr = CSoundSystem::GetNewSound();
+	attachment->m_bPrecached = true;
+	strncpy(attachment->m_szSoundPath, filepath, sizeof(attachment->m_szSoundPath)-1);
+	CSoundSystem::LoadSound(attachment->m_pSoundPtr, filepath);
+}
+
+SoundDef* CSoundScape::GetPrecached(const char* filepath)
+{
+	for(int i = 0; i < m_nSoundsPrecached; ++i)
+	{
+		if(!strcmp(filepath, g_SoundPrecaches[i].m_szSoundPath))
+		{
+			return &g_SoundPrecaches[i];
+		}
+	}
+	return NULL;
 }
 
 // Member
 
-SoundDef* CSoundScape::AttachSoundDef()
+SoundDef* CSoundScape::AttachSoundDef(const char* filepath)
 {
 	if(m_nSounds >= MAX_SOUNDSCAPES_SOUNDS) return NULL;
+	SoundDef* precache = GetPrecached(filepath);
 	
 	SoundDef* attachment = &g_SoundDefinitions[m_nSoundsUsed++];
 	m_SoundDef[m_nSounds++] = attachment;
 	attachment->m_pOwner = this;
-	attachment->m_pSoundPtr = CSoundSystem::GetNewSound();
+	if(precache)
+	{
+		attachment->m_pPrecache = precache;
+		attachment->m_bUsesPrecached = true;
+	}
+	else
+	{
+		attachment->m_pSoundPtr = CSoundSystem::GetNewSound();
+	}
+	strncpy(attachment->m_szSoundPath, filepath, sizeof(attachment->m_szSoundPath)-1);
 	return attachment;
 }
 
@@ -290,5 +325,12 @@ void CSoundScape::UpdateActive()
 	if(!IsActiveAtTime() || !IsInRange())
 	{
 		Deactivate();
+		return;
+	}
+	
+	for(int i = 0; i < m_nSounds; ++i)
+	{
+		m_SoundDef[i]->UpdatePos();
+		// TODO: position, fading etc
 	}
 }

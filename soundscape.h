@@ -67,6 +67,7 @@ struct CSoundSystem
 	static void* IsPrecached(const char* path);
 	static void SetListenerData();
 	static void* GetNewSound();
+	static bool InstantiateSound(void* precached, void* target, bool modifiedpitch = false);
 	static bool LoadSound(void* ptr, const char* path, bool modifiedpitch = false, bool stream = false);
 	static void SetPos(void* ptr, Pos3D pos);
 };
@@ -83,11 +84,14 @@ struct SoundScapeSphere
 struct SoundDef
 {
 	bool IsInRange();
+	void UpdatePos();
 	
     CSoundScape* m_pOwner;
-    char m_szSoundPath[MAX_SOUNDSCAPES_SOUND_PATH];
+	SoundDef* m_pPrecache;
     void* m_pSoundPtr;
+    char m_szSoundPath[MAX_SOUNDSCAPES_SOUND_PATH];
     Pos3D m_vecCenter;
+	float m_fSensitiveAxisCoord; // foer UpdatePos
     float m_fVolume; // [0.0 - 1.0]
 	float m_fDistance;
 	float m_fRollOff;
@@ -100,6 +104,10 @@ struct SoundDef
     	char m_bLooped : 1;
     	char m_bActive : 1;
 		char m_bStream : 1;
+		char m_bPrecached : 1;
+		char m_bUsesPrecached : 1;
+		char m_bHasPitchMod : 1;
+		char m_bFadingOut : 1;
 	};
 	unsigned char m_nRequiredSpecialFlag;
 	unsigned char m_nAttenuationModel;
@@ -117,11 +125,13 @@ struct CSoundScape
 	static CSoundScape* New();
 	static void UpdateAll();
 	static void PrecacheAudio(const char* filepath);
+	static SoundDef* GetPrecached(const char* filepath);
 
 	static inline char m_szPathPrefix[256] = "";
 	static inline bool m_bSplitUpdates = true; // Unloads CPU.
     static inline int m_nSoundsUsed = 0;
     static inline int m_nSoundScapes = 0;
+	static inline int m_nSoundsPrecached = 0;
 	static inline int m_nActiveSoundScapes = 0;
     static inline Pos3D m_vecCameraPos;
     static inline Pos3D m_vecCameraFront;
@@ -133,7 +143,7 @@ struct CSoundScape
 
 
 	// Member
-	SoundDef* AttachSoundDef();
+	SoundDef* AttachSoundDef(const char* filepath);
 	int GetActiveListPos();
 	bool InActiveList();
 	bool Activate();
