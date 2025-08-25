@@ -225,7 +225,10 @@ bool CSoundScape::Activate()
     g_ActiveSoundScapes[m_nActiveSoundScapes++] = this;
     for(int i = 0; i < m_nSounds; ++i)
     {
-        // TODO: Activate sound sources?
+        if(m_SoundDef[i]->Load())
+        {
+            m_SoundDef[i]->FadeIn();
+        }
     }
     return true;
 }
@@ -290,6 +293,8 @@ bool CSoundScape::IsInRange()
             if(m_sphere.m_vecCenter.z < m_vecCameraPos.z) return false;
             return (m_sphere.m_vecCenter.SqDistTo(m_vecCameraPos) < m_sphere.m_fSqRadius);
         }
+
+        default: return false;
     }
     return false;
 }

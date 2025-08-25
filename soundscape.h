@@ -53,7 +53,8 @@ enum eSoundDistanceType : char
 {
     SDT_EVERYWHERE = 0,
     SDT_SPHERICAL,
-    SDT_HEIGHT, // AXISZ
+    SDT_AXISZ,
+    SDT_HEIGHT = SDT_AXISZ,
     SDT_AXISX,
     SDT_AXISY,
     SDT_ALONGXY, // XZ, YZ?
@@ -70,6 +71,17 @@ struct CSoundSystem
     static bool InstantiateSound(void* precached, void* target, bool modifiedpitch = false);
     static bool LoadSound(void* ptr, const char* path, bool modifiedpitch = false, bool stream = false);
     static void SetPos(void* ptr, Pos3D pos);
+    static void UnloadSound(void* ptr);
+    static void FadeIn(void* ptr, unsigned int timeMs, float volume = 1.0f);
+    static void FadeOut(void* ptr, unsigned int timeMs);
+    static bool IsSoundPlaying(void* ptr);
+    static void SetDistance(void* ptr, float distance);
+    static void SetRolloff(void* ptr, float rolloff);
+    static void SetAttenuationModel(void* ptr, int model);
+    static void SetLooping(void* ptr, bool loop);
+    static void Start(void* ptr); // Should be after all properties being set.
+    static void SetPan(void* ptr, float pan);
+    static void SetPitch(void* ptr, float pitch);
 };
 struct SoundScapeBox
 {
@@ -85,16 +97,26 @@ struct SoundDef
 {
     bool IsInRange();
     void UpdatePos();
+    bool Load();
+    void Unload();
+    void SetPos(Pos3D pos);
+    void FadeIn();
+    void FadeOut();
+    bool IsActive();
+    bool IsFadingOut();
+    bool IsPlaying();
     
     CSoundScape* m_pOwner;
     SoundDef* m_pPrecache;
     void* m_pSoundPtr;
     char m_szSoundPath[MAX_SOUNDSCAPES_SOUND_PATH];
     Pos3D m_vecCenter;
-    float m_fSensitiveAxisCoord; // foer UpdatePos
+    float m_fSensitiveAxisCoord; // A caching stuff for UpdatePos
     float m_fVolume; // [0.0 - 1.0]
     float m_fDistance;
     float m_fRollOff;
+    float m_fPan;
+    float m_fPitch;
     unsigned int m_nFadeInTime; // Appearing time (ms)
     unsigned int m_nFadeOutTime; // Disappearing time (ms)
     eSoundDistanceType m_nDistanceLogic; // Might be negative to inverse logic

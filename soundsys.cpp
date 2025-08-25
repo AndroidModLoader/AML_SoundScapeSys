@@ -54,3 +54,65 @@ void CSoundSystem::SetPos(void* ptr, Pos3D pos)
 {
     ma_sound_set_position((ma_sound*)ptr, pos.x, pos.y, pos.z);
 }
+
+void CSoundSystem::UnloadSound(void* ptr)
+{
+    ma_sound_uninit((ma_sound*)ptr);
+}
+
+void CSoundSystem::FadeIn(void* ptr, unsigned int timeMs, float volume)
+{
+    ma_sound_set_stop_time_in_milliseconds((ma_sound*)ptr, (ma_uint64)(ma_int64)-1);
+    ma_sound_set_fade_in_milliseconds((ma_sound*)ptr, 0.0f, volume, timeMs);
+}
+
+void CSoundSystem::FadeOut(void* ptr, unsigned int timeMs)
+{
+    ma_sound_set_fade_in_milliseconds((ma_sound*)ptr, -1.0f, 0.0f, timeMs);
+    ma_sound_set_stop_time_in_milliseconds((ma_sound*)ptr, ma_engine_get_time_in_milliseconds(&soundSys) + timeMs);
+}
+
+bool CSoundSystem::IsSoundPlaying(void* ptr)
+{
+    return ma_sound_is_playing((ma_sound*)ptr);
+}
+
+void CSoundSystem::SetDistance(void* ptr, float distance)
+{
+    ma_sound_set_max_distance((ma_sound*)ptr, distance);
+}
+
+void CSoundSystem::SetRolloff(void* ptr, float rolloff)
+{
+    ma_sound_set_rolloff((ma_sound*)ptr, rolloff);
+}
+
+void CSoundSystem::SetAttenuationModel(void* ptr, int model)
+{
+    switch(model)
+    {
+        case 1: return ma_sound_set_attenuation_model((ma_sound*)ptr, ma_attenuation_model_linear);
+        case 2: return ma_sound_set_attenuation_model((ma_sound*)ptr, ma_attenuation_model_exponential);
+        default: return ma_sound_set_attenuation_model((ma_sound*)ptr, ma_attenuation_model_inverse);
+    }
+}
+
+void CSoundSystem::SetLooping(void* ptr, bool loop)
+{
+    ma_sound_set_looping((ma_sound*)ptr, loop);
+}
+
+void CSoundSystem::Start(void* ptr)
+{
+    ma_sound_start((ma_sound*)ptr);
+}
+
+void CSoundSystem::SetPan(void* ptr, float pan)
+{
+    ma_sound_set_pan((ma_sound*)ptr, pan);
+}
+
+void CSoundSystem::SetPitch(void* ptr, float pitch)
+{
+    ma_sound_set_pitch((ma_sound*)ptr, pitch);
+}
