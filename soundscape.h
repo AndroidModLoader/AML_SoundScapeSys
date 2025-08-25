@@ -153,7 +153,7 @@ struct CSoundScape
     static bool HasSpecialFlag(unsigned char flagNum);
     static CSoundScape* New();
     static void UpdateAll();
-    static void PrecacheAudio(const char* filepath);
+    static bool PrecacheAudio(const char* filepath);
     static SoundDef* GetPrecached(const char* filepath);
 
     static inline char m_szPathPrefix[256] = "";
@@ -216,8 +216,17 @@ struct CGameModule
     uintptr_t m_pAddress;
 
     virtual bool IsSupported();
+    virtual void PreActivated();
+    virtual void PostActivated();
+    virtual void LateActivated();
     virtual bool LoadedData(rapidjson::Document& doc);
-    
+    virtual void PostLoadedData(rapidjson::Document& doc);
+    virtual const char* GetFullAudioPath(const char* filepath);
+
+    /* Information */
+    // - A module should initiate DAT loading using CSoundScape::LoadDat(filepath)
+    // - At that moment everything should be set
+    /* =========== */
 };
 
 #endif // __SOUNDSCAPE_H

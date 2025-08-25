@@ -10,8 +10,11 @@ void CGameModule::LoadModules()
     {
         g_aModules[i]->m_hLibrary = aml->GetLibHandle(g_aModules[i]->m_szLib);
         g_aModules[i]->m_pAddress = aml->GetLib(g_aModules[i]->m_szLib);
-        m_pActiveModule = g_aModules[i];
-        return;
+        if(g_aModules[i]->IsSupported())
+        {
+            m_pActiveModule = g_aModules[i];
+            return;
+        }
     }
 }
 
@@ -26,7 +29,32 @@ bool CGameModule::IsSupported()
     return false;
 }
 
+void CGameModule::PreActivated()
+{
+
+}
+
+void CGameModule::PostActivated()
+{
+
+}
+
+void CGameModule::LateActivated()
+{
+
+}
+
 bool CGameModule::LoadedData(rapidjson::Document& doc)
 {
-    return true; // false to stop next stages
+    return true; // false to stop next stages (post wont be called)
+}
+
+void CGameModule::PostLoadedData(rapidjson::Document& doc)
+{
+    
+}
+
+const char* CGameModule::GetFullAudioPath(const char* filepath)
+{
+    return filepath;
 }

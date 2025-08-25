@@ -106,7 +106,7 @@ bool SoundDef::Load()
     // Not precached/instantiate failed
     if(!m_bLoaded)
     {
-        m_bLoaded = CSoundSystem::LoadSound(m_pSoundPtr, m_szSoundPath, m_bHasPitchMod, m_bStream);
+        m_bLoaded = CSoundSystem::LoadSound(m_pSoundPtr, CGameModule::Active()->GetFullAudioPath(m_szSoundPath), m_bHasPitchMod, m_bStream);
     }
 
     if(m_bLoaded)

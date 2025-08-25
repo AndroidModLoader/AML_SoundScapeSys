@@ -52,22 +52,38 @@ bool CSoundScape::LoadDat(const char* filepath)
 
     if(CGameModule::Active()->LoadedData(doc))
     {
-        for (rapidjson::Value::ConstMemberIterator itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr)
+        if(doc.HasMember("precache_table") && doc["precache_table"].IsArray())
         {
-            const rapidjson::Value& innerObj = itr->value;
-            if(innerObj.IsObject()) // SoundScape definition (most likely.)
+            const rapidjson::Value& precache_table = doc["precache_table"];
+            rapidjson::SizeType size = precache_table.Size();
+            for(rapidjson::SizeType i = 0; i < size; ++i)
             {
-
-            }
-            else if(innerObj.IsArray()) // Some special data (precache table for example)
-            {
-
-            }
-            else // Config or some sort of stuff
-            {
-
+                const rapidjson::Value& arrayElement = precache_table[i];
+                if(arrayElement.IsString())
+                {
+                    if(!CSoundScape::PrecacheAudio(CGameModule::Active()->GetFullAudioPath(arrayElement.GetString())))
+                    {
+                        logger->Error("Failed to precache \"%s\"!", arrayElement.GetString());
+                    }
+                }
             }
         }
+
+        if(doc.HasMember("soundscapes") && doc["soundscapes"].IsArray())
+        {
+            const rapidjson::Value& soundscapes = doc["soundscapes"];
+            rapidjson::SizeType size = soundscapes.Size();
+            for(rapidjson::SizeType i = 0; i < size; ++i)
+            {
+                const rapidjson::Value& item = soundscapes[i];
+                if(item.IsObject())
+                {
+                    // TODO: Load soundscapes
+                }
+            }
+        }
+
+        CGameModule::Active()->PostLoadedData(doc);
     }
 
     fclose(jsonFile);
@@ -97,7 +113,7 @@ void CSoundScape::UpdateWorldTime(unsigned int timeValue)
 
 void CSoundScape::SetSpecialFlag(unsigned char flagNum)
 {
-    if(flagNum == 0 || flagNum > 63) return;
+    if(flagNum > 63) return;
     unsigned long long flagStuff = 1;
     flagStuff <<= flagNum;
     m_nSpecialAudioFlags |= flagStuff;
@@ -105,7 +121,7 @@ void CSoundScape::SetSpecialFlag(unsigned char flagNum)
 
 void CSoundScape::RemoveSpecialFlag(unsigned char flagNum)
 {
-    if(flagNum == 0 || flagNum > 63) return;
+    if(flagNum > 63) return;
     unsigned long long flagStuff = 1;
     flagStuff <<= flagNum;
     m_nSpecialAudioFlags &= ~flagStuff;
@@ -170,17 +186,17 @@ void CSoundScape::UpdateAll()
     }
 }
 
-void CSoundScape::PrecacheAudio(const char* filepath)
+bool CSoundScape::PrecacheAudio(const char* filepath)
 {
-    if(m_nSoundsPrecached >= MAX_PRECACHED_SOUNDS-1) return;
-    if(GetPrecached(filepath) != NULL) return;
+    if(m_nSoundsPrecached >= MAX_PRECACHED_SOUNDS-1) return false;
+    if(GetPrecached(filepath) != NULL) return true;
     
     SoundDef* attachment = &g_SoundPrecaches[m_nSoundsPrecached++];
     attachment->m_pOwner = NULL;
     attachment->m_pSoundPtr = CSoundSystem::GetNewSound();
     attachment->m_bPrecached = true;
     strncpy(attachment->m_szSoundPath, filepath, sizeof(attachment->m_szSoundPath)-1);
-    CSoundSystem::LoadSound(attachment->m_pSoundPtr, filepath);
+    return CSoundSystem::LoadSound(attachment->m_pSoundPtr, CGameModule::Active()->GetFullAudioPath(filepath));
 }
 
 SoundDef* CSoundScape::GetPrecached(const char* filepath)

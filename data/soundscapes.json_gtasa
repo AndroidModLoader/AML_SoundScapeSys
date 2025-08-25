@@ -1,0 +1,18 @@
+{
+    "disable_ambient_soundtrack": true,
+    "precache_table":
+    [
+        "cricket_loop.wav", "tree_crack.wav"
+    ],
+    "soundscapes":
+    [
+        {
+            "type": 5,
+            "pos": "0.0,0.0,0.0"
+        },
+        {
+            "type": 1,
+            "pos": "0.2,1.0,6.3"
+        }
+    ]
+}
