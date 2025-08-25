@@ -15,7 +15,8 @@ LOCAL_CFLAGS    += -O3 -mfloat-abi=softfp -mfpu=neon -DNDEBUG -std=c11
 LOCAL_CXXFLAGS  += -O3 -mfloat-abi=softfp -mfpu=neon -DNDEBUG -std=c++17
 
 ### Source Files
-LOCAL_SRC_FILES := main.cpp soundscape.cpp sounddef.cpp soundsys.cpp mod/logger.cpp mod/config.cpp miniaudio/miniaudio.c
+LOCAL_SRC_FILES := main.cpp soundscape.cpp sounddef.cpp soundsys.cpp mod/logger.cpp mod/config.cpp miniaudio/miniaudio.c \
+                   moduletemplate.cpp
 
 ### Libraries
 LOCAL_LDLIBS += -llog

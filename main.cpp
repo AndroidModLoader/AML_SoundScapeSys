@@ -9,10 +9,8 @@ void *hGTASA, *hGTAVC;
 
 extern "C" void OnModPreLoad()
 {
-    hGTASA = aml->GetLibHandle("libGTASA.so");
-    hGTAVC = aml->GetLibHandle("libGTAVC.so");
-
-    if(!hGTASA && !hGTAVC)
+    CGameModule::LoadModules();
+    if(!CGameModule::Active())
     {
         logger->Error("Failed to start: no supported game was found.");
         return;

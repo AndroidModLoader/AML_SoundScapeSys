@@ -3,9 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <rapidjson/include/rapidjson/document.h>
-#include <rapidjson/include/rapidjson/filereadstream.h>
-
 CSoundScape g_SoundScapes[MAX_SOUNDSCAPES] { 0 };
 CSoundScape* g_ActiveSoundScapes[MAX_ACTIVE_SOUNDSCAPES] { NULL };
 SoundDef g_SoundDefinitions[MAX_SOUNDSCAPES * MAX_SOUNDSCAPES_SOUNDS] { 0 };
@@ -53,21 +50,23 @@ bool CSoundScape::LoadDat(const char* filepath)
         return false;
     }
 
-    // TODO: Load important keys first!
-    for (rapidjson::Value::ConstMemberIterator itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr)
+    if(CGameModule::Active()->LoadedData(doc))
     {
-        const rapidjson::Value& innerObj = itr->value;
-        if(innerObj.IsObject()) // SoundScape definition (most likely.)
+        for (rapidjson::Value::ConstMemberIterator itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr)
         {
+            const rapidjson::Value& innerObj = itr->value;
+            if(innerObj.IsObject()) // SoundScape definition (most likely.)
+            {
 
-        }
-        else if(innerObj.IsArray()) // Some special data (precache table for example)
-        {
+            }
+            else if(innerObj.IsArray()) // Some special data (precache table for example)
+            {
 
-        }
-        else // Config or some sort of stuff
-        {
+            }
+            else // Config or some sort of stuff
+            {
 
+            }
         }
     }
 
@@ -94,6 +93,22 @@ void CSoundScape::UpdateWorldId(int worldId)
 void CSoundScape::UpdateWorldTime(unsigned int timeValue)
 {
     m_nWorldTime = timeValue;
+}
+
+void CSoundScape::SetSpecialFlag(unsigned char flagNum)
+{
+    if(flagNum == 0 || flagNum > 63) return;
+    unsigned long long flagStuff = 1;
+    flagStuff <<= flagNum;
+    m_nSpecialAudioFlags |= flagStuff;
+}
+
+void CSoundScape::RemoveSpecialFlag(unsigned char flagNum)
+{
+    if(flagNum == 0 || flagNum > 63) return;
+    unsigned long long flagStuff = 1;
+    flagStuff <<= flagNum;
+    m_nSpecialAudioFlags &= ~flagStuff;
 }
 
 bool CSoundScape::HasSpecialFlag(unsigned char flagNum)
@@ -219,15 +234,54 @@ bool CSoundScape::InActiveList()
 
 bool CSoundScape::Activate()
 {
-    if(m_nActiveSoundScapes >= MAX_ACTIVE_SOUNDSCAPES || InActiveList()) return false;
+    if(InActiveList() && m_bInDeactivateProcess)
+    {
+        m_bInDeactivateProcess = false;
+        for(int i = 0; i < m_nSounds; ++i)
+        {
+            if(m_SoundDef[i]->IsFadingOut())
+            {
+                m_SoundDef[i]->FadeIn();
+            }
+            else if(m_SoundDef[i]->Load())
+            {
+                m_SoundDef[i]->FadeIn();
+            }
+        }
+        return true;
+    }
     
-    m_bActive = true;
-    g_ActiveSoundScapes[m_nActiveSoundScapes++] = this;
+    if(m_nActiveSoundScapes < MAX_ACTIVE_SOUNDSCAPES-1)
+    {
+        m_bActive = true;
+        g_ActiveSoundScapes[m_nActiveSoundScapes++] = this;
+        for(int i = 0; i < m_nSounds; ++i)
+        {
+            if(m_SoundDef[i]->Load())
+            {
+                m_SoundDef[i]->FadeIn();
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool CSoundScape::StartDeactivate()
+{
+    if(!m_bActive) return false;
+
+    SoundDef* sound;
     for(int i = 0; i < m_nSounds; ++i)
     {
-        if(m_SoundDef[i]->Load())
+        sound = m_SoundDef[i];
+        if(sound->IsPlaying())
         {
-            m_SoundDef[i]->FadeIn();
+            sound->FadeOut();
+        }
+        else if(sound->IsActive())
+        {
+            sound->Stop();
         }
     }
     return true;
@@ -251,7 +305,10 @@ bool CSoundScape::Deactivate()
     
     for(int i = 0; i < m_nSounds; ++i)
     {
-        // TODO: Deactivate sound sources?
+        if(m_SoundDef[i]->IsActive())
+        {
+            m_SoundDef[i]->Unload();
+        }
     }
     return true;
 }
@@ -329,13 +386,34 @@ void CSoundScape::UpdateActive()
 {
     if(!IsActiveAtTime() || !IsInRange())
     {
-        Deactivate();
-        return;
+        if(m_bInDeactivateProcess)
+        {
+            if(AllSoundsStopped()) Deactivate();
+        }
+        else
+        {
+            StartDeactivate();
+        }
     }
-    
+    else
+    {
+        CSoundScape::Process();
+    }
+}
+
+void CSoundScape::Process()
+{
     for(int i = 0; i < m_nSounds; ++i)
     {
         m_SoundDef[i]->UpdatePos();
-        // TODO: position, fading etc
     }
+}
+
+bool CSoundScape::AllSoundsStopped()
+{
+    for(int i = 0; i < m_nSounds; ++i)
+    {
+        if(m_SoundDef[i]->IsPlaying()) return false;
+    }
+    return true;
 }

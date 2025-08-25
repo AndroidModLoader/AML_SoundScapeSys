@@ -116,3 +116,8 @@ void CSoundSystem::SetPitch(void* ptr, float pitch)
 {
     ma_sound_set_pitch((ma_sound*)ptr, pitch);
 }
+
+void CSoundSystem::Stop(void* ptr)
+{
+    ma_sound_stop((ma_sound*)ptr);
+}

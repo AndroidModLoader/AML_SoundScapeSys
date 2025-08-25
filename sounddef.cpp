@@ -90,25 +90,28 @@ void SoundDef::UpdatePos()
 
 bool SoundDef::Load()
 {
-    if(m_bActive) return false;
+    if(m_bLoaded)
+    {
+        return false;
+    }
 
     if(m_bUsesPrecached && m_pPrecache)
     {
         if(CSoundSystem::InstantiateSound(m_pPrecache->m_pSoundPtr, m_pSoundPtr, m_bHasPitchMod))
         {
-            m_bActive = true;
-            return true;
+            m_bLoaded = true;
         }
     }
 
     // Not precached/instantiate failed
-    if(!m_bActive)
+    if(!m_bLoaded)
     {
-        m_bActive = CSoundSystem::LoadSound(m_pSoundPtr, m_szSoundPath, m_bHasPitchMod, m_bStream);
+        m_bLoaded = CSoundSystem::LoadSound(m_pSoundPtr, m_szSoundPath, m_bHasPitchMod, m_bStream);
     }
 
-    if(m_bActive)
+    if(m_bLoaded)
     {
+        m_bLoaded = true;
         CSoundSystem::SetDistance(m_pSoundPtr, m_fDistance);
         CSoundSystem::SetRolloff(m_pSoundPtr, m_fRollOff);
         CSoundSystem::SetAttenuationModel(m_pSoundPtr, m_nAttenuationModel);
@@ -127,10 +130,10 @@ bool SoundDef::Load()
 
 void SoundDef::Unload()
 {
-    if(!m_bActive) return;
+    if(!m_bLoaded) return;
     
     CSoundSystem::UnloadSound(m_pSoundPtr);
-    m_bActive = false;
+    m_bLoaded = false;
 }
 
 void SoundDef::SetPos(Pos3D pos)
@@ -140,7 +143,7 @@ void SoundDef::SetPos(Pos3D pos)
 
 void SoundDef::FadeIn()
 {
-    if(!m_bActive) return;
+    if(!m_bLoaded) return;
 
     CSoundSystem::FadeIn(m_pSoundPtr, m_nFadeInTime, m_fVolume);
     CSoundSystem::Start(m_pSoundPtr);
@@ -155,7 +158,7 @@ void SoundDef::FadeOut()
 
 bool SoundDef::IsActive()
 {
-    return m_bActive;
+    return m_bLoaded;
 }
 
 bool SoundDef::IsFadingOut()
@@ -166,4 +169,9 @@ bool SoundDef::IsFadingOut()
 bool SoundDef::IsPlaying()
 {
     return (IsActive() && CSoundSystem::IsSoundPlaying(m_pSoundPtr));
+}
+
+void SoundDef::Stop()
+{
+    CSoundSystem::Stop(m_pSoundPtr);
 }

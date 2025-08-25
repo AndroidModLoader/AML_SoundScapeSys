@@ -3,9 +3,13 @@
 
 #include <mod/logger.h>
 #include <math.h>
+#include <stdint.h>
 
-#define MAX_SOUNDSCAPES                 1024
-#define MAX_ACTIVE_SOUNDSCAPES          10
+#include <rapidjson/include/rapidjson/document.h>
+#include <rapidjson/include/rapidjson/filereadstream.h>
+
+#define MAX_SOUNDSCAPES                 512
+#define MAX_ACTIVE_SOUNDSCAPES          6
 #define MAX_SOUNDSCAPES_SOUNDS          6
 #define MAX_SOUNDSCAPES_ACTIVE_SOUNDS   (2 * MAX_ACTIVE_SOUNDSCAPES * MAX_SOUNDSCAPES_SOUNDS)
 #define MAX_SOUNDSCAPES_SOUND_PATH      40
@@ -82,6 +86,7 @@ struct CSoundSystem
     static void Start(void* ptr); // Should be after all properties being set.
     static void SetPan(void* ptr, float pan);
     static void SetPitch(void* ptr, float pitch);
+    static void Stop(void* ptr);
 };
 struct SoundScapeBox
 {
@@ -105,6 +110,7 @@ struct SoundDef
     bool IsActive();
     bool IsFadingOut();
     bool IsPlaying();
+    void Stop();
     
     CSoundScape* m_pOwner;
     SoundDef* m_pPrecache;
@@ -124,7 +130,6 @@ struct SoundDef
     {
         char m_bLoaded : 1;
         char m_bLooped : 1;
-        char m_bActive : 1;
         char m_bStream : 1;
         char m_bPrecached : 1;
         char m_bUsesPrecached : 1;
@@ -143,6 +148,8 @@ struct CSoundScape
     static void UpdateCamera(Pos3D pos, Pos3D front, Pos3D top);
     static void UpdateWorldId(int worldId);
     static void UpdateWorldTime(unsigned int timeValue);
+    static void SetSpecialFlag(unsigned char flagNum);
+    static void RemoveSpecialFlag(unsigned char flagNum);
     static bool HasSpecialFlag(unsigned char flagNum);
     static CSoundScape* New();
     static void UpdateAll();
@@ -160,7 +167,7 @@ struct CSoundScape
     static inline Pos3D m_vecCameraTop;
     static inline int m_nWorldID = -1;
     static inline unsigned int m_nWorldTime = 0;
-    static inline long long m_nSpecialAudioFlags = 0; // Something you can set in the code [1-63]
+    static inline unsigned long long m_nSpecialAudioFlags = 0; // Something you can set in the code [1-63]
 
 
 
@@ -169,12 +176,15 @@ struct CSoundScape
     int GetActiveListPos();
     bool InActiveList();
     bool Activate();
+    bool StartDeactivate();
     bool Deactivate();
     bool IsInRange();
     bool IsTimed();
     bool IsActiveAtTime();
     void UpdateInactive();
     void UpdateActive();
+    void Process();
+    bool AllSoundsStopped();
     
     int m_nID;
     int m_nTargetWorldID;
@@ -182,6 +192,7 @@ struct CSoundScape
     unsigned int m_nTimeEnd;
     eSoundScapeType m_nType = SST_UNKNOWN;
     bool m_bActive;
+    bool m_bInDeactivateProcess;
     unsigned char m_nSounds;
 
     union
@@ -190,6 +201,23 @@ struct CSoundScape
         SoundScapeSphere m_sphere;
     };
     SoundDef* m_SoundDef[MAX_SOUNDSCAPES_SOUNDS];
+};
+
+struct CGameModule
+{
+    static void LoadModules();
+    static inline CGameModule* Active() { return m_pActiveModule; }
+    static inline CGameModule* m_pActiveModule = NULL;
+
+    CGameModule() {}
+    CGameModule(const char* libName);
+    const char* m_szLib;
+    void* m_hLibrary;
+    uintptr_t m_pAddress;
+
+    virtual bool IsSupported();
+    virtual bool LoadedData(rapidjson::Document& doc);
+    
 };
 
 #endif // __SOUNDSCAPE_H
